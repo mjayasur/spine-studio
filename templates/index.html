@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Vertebrae Segmentation</title>
+</head>
+
+<body>
+    <h1>Upload NIfTI File for Vertebrae Segmentation</h1>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <br><br>
+        <input type="submit" value="Upload">
+    </form>
+    <div id="vertebrae-selection" style="display: none;">
+        <h2>Select Vertebrae to View Top Slices</h2>
+        <form id="processForm" method="post">
+            <div id="vertebrae-checkboxes"></div>
+            <input type="submit" value="Process">
+        </form>
+    </div>
+    <div id="results"></div>
+    <script>
+        function showVertebraeSelection(vertebrae) {
+            document.getElementById('vertebrae-selection').style.display = 'block';
+            const vertebraeCheckboxes = document.getElementById('vertebrae-checkboxes');
+            vertebraeCheckboxes.innerHTML = '';  // Clear any existing checkboxes
+            vertebrae.forEach(vertebra => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'vertebrae';
+                checkbox.value = vertebra.value;
+                const label = document.createElement('label');
+                label.innerText = vertebra.label;
+                vertebraeCheckboxes.appendChild(checkbox);
+                vertebraeCheckboxes.appendChild(label);
+                vertebraeCheckboxes.appendChild(document.createElement('br'));
+            });
+        }
+
+        function showResults(results) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';  // Clear any existing results
+            results.forEach(result => {
+                const img = document.createElement('img');
+                img.src = result.filename;
+                const p = document.createElement('p');
+                p.innerText = `Overall Average Hounsfield Units: ${result.avg_hu.toFixed(2)}`;
+                resultsDiv.appendChild(img);
+                resultsDiv.appendChild(p);
+            });
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                const vertebrae = await response.json();
+                showVertebraeSelection(vertebrae);
+            }
+        });
+
+        document.getElementById('processForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/process', {
+                method: 'POST',
+                body: formData
+            });
+            const results = await response.json();
+            showResults(results);
+        });
+    </script>
+</body>
+
+</html>
