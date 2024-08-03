@@ -18,7 +18,7 @@ UPLOAD_FOLDER = 'uploads'
 # Set the root path directly
 root_path = os.getcwd()
 
-app = Flask(__name__, root_path=root_path)
+app = Flask(__name__)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -80,4 +80,5 @@ def loading():
     return render_template('loading.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=sys.argv[1], debug=True)
+    threading.Thread(target=app.run, kwargs={"use_reloader": False}).start()
+
