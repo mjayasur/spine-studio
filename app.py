@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, redirect, url_for, render_template, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
-
+import sys
 import nibabel as nib
 import numpy as np
 import matplotlib
@@ -75,4 +75,4 @@ def loading():
     return render_template('loading.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002, debug=True)
+    app.run(host='0.0.0.0', port=sys.argv[1], debug=True)
