@@ -61,7 +61,24 @@
             cursor: pointer;
         }
 
+        .calculate-button {
+            /* width: 80px;
+            height: 40px; */
+            border-radius: 32px;
+            font-size: 14px;
+            border: 2px solid #151439;
+            background-color: transparent;
+            color: #151439;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
         .change-button:hover {
+            background-color: #151439;
+            color: #ffffff;
+        }
+
+        .calculate-button:hover {
             background-color: #151439;
             color: #ffffff;
         }
@@ -91,6 +108,8 @@
             border-radius: 23px;
             padding: 20px;
             box-sizing: border-box;
+            display: none;
+            /* Initially hidden */
         }
 
         .bmd-calculator-box .columns {
@@ -300,53 +319,24 @@
                                     <h2>Choose your level</h2>
                                     <div class="divider"></div>
                                     <div class="dropdown">
-                                        <label for="Cervical">Cervical</label>
-                                        <select>
-                                            <option>C1</option>
-                                            <option>C2</option>
-                                            <option>C3</option>
-                                            <option>C4</option>
-                                            <option>C5</option>
-                                            <option>C6</option>
-                                            <option>C7</option>
-                                        </select>
-
-                                        <label for="Thoracic">Thoracic</label>
-                                        <select>
-                                            <option>T1</option>
-                                            <option>T2</option>
-                                            <option>T3</option>
-                                            <option>T4</option>
-                                            <option>T5</option>
-                                            <option>T6</option>
-                                            <option>T7</option>
-                                            <option>T8</option>
-                                            <option>T9</option>
-                                            <option>T10</option>
-                                            <option>T11</option>
-                                            <option>T12</option>
-                                        </select>
-
-                                        <label for="Lumbar">Lumbar</label>
-                                        <select>
-                                            <option>L1</option>
-                                            <option>L2</option>
-                                            <option>L3</option>
-                                            <option>L4</option>
-                                            <option>L5</option>
+                                        <label for="Vertebrae">Vertebrae</label>
+                                        <select id="vertebrae-select">
+                                            <!-- Options will be populated dynamically -->
                                         </select>
                                     </div>
+                                    <button class="calculate-button" onclick="calculateBMD()">Calculate</button>
                                 </div>
-                                <div class="column"
-                                    style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-                                    <img src="static/images/ct_spine 2.png" alt="Sagittal Slice" style="margin: auto;">
+                                <div class="column" id="sagittal-slice-column"
+                                    style="text-align: center; display: none;">
+                                    <img src="" alt="Sagittal Slice" id="sagittal-slice" style="margin: auto;">
                                 </div>
-                                <div class="column">
+                                <div class="column" id="bmd-results-column" style="display: none;">
                                     <h2>BMD</h2>
                                     <div class="divider"></div>
-                                    <p>Average HU: <strong><span class="highlight">201</span></strong></p>
+                                    <p>Average HU: <strong><span class="highlight" id="average-hu">201</span></strong>
+                                    </p>
                                     <p>Region of Interest Placement</p>
-                                    <img src="static/images/image 2.png" alt="Region of Interest" style="margin: auto;">
+                                    <img src="" alt="Region of Interest" id="roi-placement" style="margin: auto;">
                                 </div>
                             </div>
                         </div>
@@ -367,6 +357,49 @@
             </div>
         </main>
     </div>
+
+    <script>
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const modality = params.get('modality');
+            const availableLevels = params.get('availableLevels');
+            return { id, modality, availableLevels };
+        }
+
+        function populateDropdown(levels) {
+            const select = document.getElementById('vertebrae-select');
+            levels.split(',').forEach(level => {
+                const option = document.createElement('option');
+                option.value = level;
+                option.textContent = level;
+                select.appendChild(option);
+            });
+        }
+
+        function calculateBMD() {
+            const vertebrae = document.getElementById('vertebrae-select').value;
+            const { id, modality } = getUrlParams();
+
+            fetch(`/calculate-hounsfield?id=${id}&modality=${modality}&vertebrae=${vertebrae}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('sagittal-slice').src = data.sagittalSliceUrl;
+                    document.getElementById('roi-placement').src = data.roiPlacementUrl;
+                    document.getElementById('average-hu').textContent = data.averageHU;
+
+                    document.querySelector('.bmd-calculator-box').style.display = 'block';
+                    document.getElementById('sagittal-slice-column').style.display = 'flex';
+                    document.getElementById('bmd-results-column').style.display = 'block';
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const { availableLevels } = getUrlParams();
+            populateDropdown(availableLevels);
+        });
+    </script>
 </body>
 
 </html>

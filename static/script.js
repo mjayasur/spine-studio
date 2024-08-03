@@ -24,7 +24,8 @@ function handleUploadClick() {
                 response.json().then(data => {
                     var redirectUrl;
                     if (imagingType === "CT") {
-                        redirectUrl = "/output_ct";
+                        console.log(data);
+                        redirectUrl = `/output_ct?id=${data['uuid']}&modality=CT&availableLevels=${data['vertebrae']}`;
                     } else if (imagingType === "MRI") {
                         redirectUrl = "/output_mri";
                     } else if (imagingType === "XR") {
