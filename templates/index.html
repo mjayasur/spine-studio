@@ -3,79 +3,69 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Vertebrae Segmentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <h1>Upload NIfTI File for Vertebrae Segmentation</h1>
-    <form id="uploadForm" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <br><br>
-        <input type="submit" value="Upload">
-    </form>
-    <div id="vertebrae-selection" style="display: none;">
-        <h2>Select Vertebrae to View Top Slices</h2>
-        <form id="processForm" method="post">
-            <div id="vertebrae-checkboxes"></div>
-            <input type="submit" value="Process">
-        </form>
+    <div id="index-content">
+        <header class="header">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/image 1.png') }}" alt="Logo">
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('about') }}">About</a></li>
+                    <li><a href="{{ url_for('users') }}">Users</a></li>
+                    <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                </ul>
+            </nav>
+        </header>
+        <main class="main-content">
+            <h1 class="spine-studio-text">Spine Studio</h1>
+            <p>Predictive modeling and AI image analysis for spine surgery</p>
+            <a href="javascript:void(0);" class="cta-button" onclick="openPopup()">Get Started</a>
+        </main>
+        <!-- Popup Modal -->
+        <div id="uploadModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closePopup()">&times;</span>
+                <h2 class="upload-title">Upload your files</h2>
+                <div class="upload-container">
+                    <form id="uploadForm" method="post" enctype="multipart/form-data" action="/upload-file"
+                        class="upload-form">
+                        <div class="upload-box">
+                            <input type="file" id="fileInput" name="file" style="display:none;" multiple>
+                            <img src="{{ url_for('static', filename='images/Upload cloud.png') }}" alt="cloud"
+                                class="cloud-image" onclick="document.getElementById('fileInput').click();">
+                            <p>Drop files to upload <br>or <a href="#"
+                                    onclick="document.getElementById('fileInput').click(); return false;">browse</a></p>
+                        </div>
+                        <div class="upload-options">
+                            <h3 class="options-title">Options</h3>
+                            <div class="options-line"></div>
+                            <label for="type-of-imaging">Type of imaging</label>
+                            <select id="type-of-imaging" name="type-of-imaging">
+                                <option value="CT">CT</option>
+                                <option value="MRI">MRI</option>
+                                <option value="XR">XR</option>
+                            </select>
+                            <div class="button-container">
+                                <button type="button" class="upload-btn" onclick="handleUploadClick()">Upload
+                                    Files</button>
+                                <button type="button" class="cancel-btn" onclick="closePopup()">Cancel</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="results"></div>
-    <script>
-        function showVertebraeSelection(vertebrae) {
-            document.getElementById('vertebrae-selection').style.display = 'block';
-            const vertebraeCheckboxes = document.getElementById('vertebrae-checkboxes');
-            vertebraeCheckboxes.innerHTML = '';  // Clear any existing checkboxes
-            vertebrae.forEach(vertebra => {
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.name = 'vertebrae';
-                checkbox.value = vertebra.value;
-                const label = document.createElement('label');
-                label.innerText = vertebra.label;
-                vertebraeCheckboxes.appendChild(checkbox);
-                vertebraeCheckboxes.appendChild(label);
-                vertebraeCheckboxes.appendChild(document.createElement('br'));
-            });
-        }
-
-        function showResults(results) {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '';  // Clear any existing results
-            results.forEach(result => {
-                const img = document.createElement('img');
-                img.src = result.filename;
-                const p = document.createElement('p');
-                p.innerText = `Overall Average Hounsfield Units: ${result.avg_hu.toFixed(2)}`;
-                resultsDiv.appendChild(img);
-                resultsDiv.appendChild(p);
-            });
-        }
-
-        document.getElementById('uploadForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-            if (response.ok) {
-                const vertebrae = await response.json();
-                showVertebraeSelection(vertebrae);
-            }
-        });
-
-        document.getElementById('processForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            const response = await fetch('/process', {
-                method: 'POST',
-                body: formData
-            });
-            const results = await response.json();
-            showResults(results);
-        });
-    </script>
+    <iframe id="loading-frame" hidden src="/loading" style="width: 100%; height: 100%; border: none;"></iframe>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 
 </html>

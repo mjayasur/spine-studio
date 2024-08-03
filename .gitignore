@@ -1,3 +1,6 @@
 mask.nii.gz
 uploads
-
+.DS_Store
+__pycache__/*
+old
+venv
