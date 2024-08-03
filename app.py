@@ -76,8 +76,8 @@ def upload_file():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             input_nib = nib.load(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             output_nib = totalsegmentator(input_nib)
-            input_nib.save(os.path.join(app.config['NIB_FOLDER'], f"{output_uuid}.nii.gz"))
-            output_nib.save(os.path.join(app.config['NIB_FOLDER'], f"{output_uuid}_mask.nii.gz"))
+            nib.save(input_nib, os.path.join(app.config['NIB_FOLDER'], f"{output_uuid}.nii.gz"))
+            nib.save(output_nib, os.path.join(app.config['NIB_FOLDER'], f"{output_uuid}_mask.nii.gz"))
             
             for val in np.unique(output_nib.get_fdata()):
                 if val in vertebrae_dict:
