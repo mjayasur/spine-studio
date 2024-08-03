@@ -31,8 +31,8 @@
         .scan-type,
         .ct-text,
         .change-button,
-        /* .divider, */
-        .bmd-calculator {
+        .bmd-calculator,
+        .sarcopenia-calculator {
             margin-bottom: 20px;
         }
 
@@ -62,8 +62,6 @@
         }
 
         .calculate-button {
-            /* width: 80px;
-            height: 40px; */
             border-radius: 32px;
             font-size: 14px;
             border: 2px solid #151439;
@@ -73,11 +71,7 @@
             cursor: pointer;
         }
 
-        .change-button:hover {
-            background-color: #151439;
-            color: #ffffff;
-        }
-
+        .change-button:hover,
         .calculate-button:hover {
             background-color: #151439;
             color: #ffffff;
@@ -92,7 +86,8 @@
             box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .bmd-calculator {
+        .bmd-calculator,
+        .sarcopenia-calculator {
             font-size: 24px;
             font-weight: 700;
             text-transform: uppercase;
@@ -100,7 +95,8 @@
             color: #151439;
         }
 
-        .bmd-calculator-box {
+        .bmd-calculator-box,
+        .sarcopenia-calculator-box {
             width: 100%;
             max-width: 675px;
             background: #EBEAED;
@@ -111,21 +107,25 @@
             display: block;
         }
 
-        .bmd-calculator-box .columns {
+        .bmd-calculator-box .columns,
+        .sarcopenia-calculator-box .columns {
             display: flex;
             justify-content: space-between;
         }
 
-        .bmd-calculator-box .column {
+        .bmd-calculator-box .column,
+        .sarcopenia-calculator-box .column {
             flex: 1;
             margin-right: 20px;
         }
 
-        .bmd-calculator-box .column:last-child {
+        .bmd-calculator-box .column:last-child,
+        .sarcopenia-calculator-box .column:last-child {
             margin-right: 0;
         }
 
-        .bmd-calculator-box h2 {
+        .bmd-calculator-box h2,
+        .sarcopenia-calculator-box h2 {
             font-family: 'DM Sans', sans-serif;
             font-style: normal;
             font-weight: 400;
@@ -135,7 +135,8 @@
             margin: 10px 0;
         }
 
-        .bmd-calculator-box .column .divider {
+        .bmd-calculator-box .column .divider,
+        .sarcopenia-calculator-box .column .divider {
             width: 100%;
             height: 2px;
             background-color: #bababa;
@@ -143,16 +144,17 @@
             border-radius: 1px;
             box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
             margin: 10px 0;
-            /* Adjust the margin as needed */
         }
 
-        .bmd-calculator-box hr {
+        .bmd-calculator-box hr,
+        .sarcopenia-calculator-box hr {
             border: 1px solid #4F4F4F;
             transform: rotate(-0.33deg);
             margin: 20px 0;
         }
 
-        .bmd-calculator-box .dropdown label {
+        .bmd-calculator-box .dropdown label,
+        .sarcopenia-calculator-box .dropdown label {
             font-family: 'DM Sans', sans-serif;
             font-style: normal;
             font-weight: 400;
@@ -161,10 +163,10 @@
             color: #757575;
             display: block;
             margin-bottom: 0px;
-            /* Space between label and dropdown */
         }
 
-        .bmd-calculator-box .dropdown select {
+        .bmd-calculator-box .dropdown select,
+        .sarcopenia-calculator-box .dropdown select {
             margin-top: 20px;
             padding: 10px;
             font-family: 'DM Sans', sans-serif;
@@ -179,13 +181,13 @@
             margin-bottom: 20px;
         }
 
-        /* Additional space between the dropdowns */
-        .bmd-calculator-box .dropdown select+select {
+        .bmd-calculator-box .dropdown select+select,
+        .sarcopenia-calculator-box .dropdown select+select {
             margin-top: 30px;
-            /* Add this line to increase space between each dropdown */
         }
 
-        .bmd-calculator-box img {
+        .bmd-calculator-box img,
+        .sarcopenia-calculator-box img {
             max-height: 300px;
             width: auto;
             border: 1px solid #000000;
@@ -193,7 +195,8 @@
             align-items: center;
         }
 
-        .bmd-calculator-box p {
+        .bmd-calculator-box p,
+        .sarcopenia-calculator-box p {
             font-family: 'DM Sans', sans-serif;
             font-style: normal;
             font-weight: 400;
@@ -211,76 +214,29 @@
             color: #000000;
             text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
             margin-bottom: 200px;
-            /* Add margin to create space below the text */
         }
 
         .highlight {
             color: rgb(255, 0, 0);
         }
 
-        /* Sarcopenia */
-        .sarcopenia-visualizer {
-            font-size: 24px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #151439;
-            margin-bottom: 20px;
-        }
-
-        .sarcopenia-visualizer-box {
-            width: 100%;
-            max-width: 675px;
-            background: #EBEAED;
-            border: 1px solid #000000;
-            border-radius: 23px;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-
-        .sarcopenia-visualizer-box img {
-            max-height: 300px;
-            width: auto;
-            border: 1px solid #000000;
-            display: block;
-            margin: 0 auto 20px;
-        }
-
-        .sarcopenia-visualizer-box p {
-            font-family: 'DM Sans', sans-serif;
-            font-style: normal;
-            font-weight: 400;
-            font-size: 20px;
-            line-height: 26px;
-            color: #757575;
-            margin: 10px 0;
-        }
-
-        .sarcopenia-visualizer-box p a {
-            color: #1E90FF;
-            text-decoration: none;
-        }
-
-        .sarcopenia-visualizer-box p a:hover {
-            text-decoration: underline;
-        }
-
         .grid-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            /* Adjust the gap as needed */
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .left-side,
+        .right-side {
+            flex: 1;
+            padding: 20px;
         }
 
         .left-side {
-            display: flex;
-            flex-direction: column;
+            max-width: 50%;
         }
 
         .right-side {
-            display: flex;
-            flex-direction: column;
+            max-width: 50%;
         }
     </style>
 </head>
@@ -343,12 +299,23 @@
                 </div>
                 <div class="right-side">
                     <div class="section">
-                        <div class="sarcopenia-visualizer">
-                            <h2>Sarcopenia Visualizer</h2>
-                            <div class="sarcopenia-visualizer-box">
-                                <img src="static/images/sarcopenia.png" alt="Sarcopenia Visualizer" style="margin:auto">
-                                <p>Iliopsoas cross-sectional area: <strong>12 cm<sup>2</sup></strong></p>
-                                <p><a href="your-link-here">Read more</a> about AI methods for sarcopenia</p>
+                        <div class="sarcopenia-calculator">Sarcopenia Calculator</div>
+                        <div class="sarcopenia-calculator-box">
+                            <div class="columns">
+                                <div class="column">
+                                    <h2>Calculate Sarcopenia</h2>
+                                    <div class="divider"></div>
+                                    <button class="calculate-button" onclick="calculateSarcopenia()">Calculate</button>
+                                </div>
+                                <div class="column" id="sarcopenia-results-column" style="display: none;">
+                                    <h2>Sarcopenia Results</h2>
+                                    <div class="divider"></div>
+                                    <p>Iliopsoas Area: <strong><span class="highlight" id="iliopsoas-area">0</span>
+                                            cm<sup>2</sup></strong></p>
+                                    <p>Autochthon Area: <strong><span class="highlight" id="autochthon-area">0</span>
+                                            cm<sup>2</sup></strong></p>
+                                    <img src="" alt="Sarcopenia Mask" id="sarcopenia-mask" style="margin: auto;">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -390,6 +357,22 @@
                     document.querySelector('.bmd-calculator-box').style.display = 'block';
                     document.getElementById('sagittal-slice-column').style.display = 'flex';
                     document.getElementById('bmd-results-column').style.display = 'block';
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function calculateSarcopenia() {
+            const { id, modality } = getUrlParams();
+
+            fetch(`/calculate-sarcopenia?id=${id}&modality=${modality}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('sarcopenia-mask').src = data.maskUrl;
+                    document.getElementById('iliopsoas-area').textContent = data.iliopsoasArea;
+                    document.getElementById('autochthon-area').textContent = data.autochthonArea;
+
+                    document.querySelector('.sarcopenia-calculator-box').style.display = 'block';
+                    document.getElementById('sarcopenia-results-column').style.display = 'block';
                 })
                 .catch(error => console.error('Error:', error));
         }

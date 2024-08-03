@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, redirect, url_for, render_template, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
 from matplotlib.patches import Ellipse
+from matplotlib.colors import ListedColormap
 
 import sys
 import nibabel as nib
@@ -131,7 +132,7 @@ def fit_ellipse_to_rectangle(rect_coords, image_slice):
     axis_b = (bottom - up) / 2 - 2  # Semi-minor axis
     
     # Create an ellipse patch
-    ellipse = Ellipse((center_x, center_y), width=axis_a*2, height=axis_b*2, edgecolor='green', facecolor='none')
+    ellipse = Ellipse((center_x, center_y), width=axis_a*2, height=axis_b*2, edgecolor='red', facecolor='none')
                 
     # Create a grid of the same size as the image
     y_indices, x_indices = np.ogrid[:image_slice.shape[0], :image_slice.shape[1]]
@@ -234,7 +235,77 @@ def calculate_hounsfield():
     except Exception as e:
         return jsonify(success=False, message=str(e)), 500
 
+@app.route('/calculate-sarcopenia', methods=['GET'])
+def calculate_sarcopenia():
+    id = request.args.get('id')
+    modality = request.args.get('modality')
 
+    if not id or not modality:
+        return jsonify(success=False, message="Missing parameters"), 400
+
+    try:
+        # Load the NIfTI file using the id
+        input_nib_path = os.path.join(app.config['NIB_FOLDER'], f"{id}.nii.gz")
+        mask_nib_path = os.path.join(app.config['NIB_FOLDER'], f"{id}_mask.nii.gz")
+
+        if not os.path.exists(input_nib_path) or not os.path.exists(mask_nib_path):
+            return jsonify(success=False, message="NIfTI files not found"), 404
+
+        input_nib = nib.load(input_nib_path)
+        mask_nib = nib.load(mask_nib_path)
+
+        input_data = input_nib.get_fdata()
+        mask_data = mask_nib.get_fdata()
+
+        # Get the axial slice index for L3
+        l3_indices = np.where(mask_data == 29)[1]
+        if len(l3_indices) == 0:
+            return jsonify(success=False, message="L3 level not found in the mask"), 404
+
+        l3_slice_index = l3_indices[len(l3_indices) // 2]
+
+        # Extract the axial slice for the input and mask
+        axial_slice = input_data[:, l3_slice_index, :]
+        mask_slice = mask_data[:, l3_slice_index, :]
+
+        # Calculate iliopsoas and autochthon areas
+        iliopsoas_area = np.sum((mask_slice == 88) | (mask_slice == 89))
+        autochthon_area = np.sum((mask_slice == 86) | (mask_slice == 87))
+
+        iliopsoas_area_cm2 = iliopsoas_area * np.prod(input_nib.header.get_zooms()[:2]) / 100
+        autochthon_area_cm2 = autochthon_area * np.prod(input_nib.header.get_zooms()[:2]) / 100
+
+        # Create the binary mask
+        binary_mask = np.zeros_like(mask_slice)
+        binary_mask[mask_slice == 88] = 1
+        binary_mask[mask_slice == 89] = 1
+        binary_mask[mask_slice == 86] = 2
+        binary_mask[mask_slice == 87] = 2
+
+        # Create a custom colormap with transparency
+        cmap = ListedColormap(['black', 'red', 'blue'])
+        norm = plt.Normalize(vmin=0, vmax=2)
+
+        # Create unique filenames for the resulting images
+        sarcopenia_mask_path = os.path.join(app.config['IMAGE_FOLDER'], f"{id}_sarcopenia_mask.png")
+
+        # Display the image and the binary mask
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        ax.imshow(axial_slice, cmap='gray')
+        mask_overlay = ax.imshow(binary_mask, cmap=cmap, norm=norm, alpha=0.3)
+        ax.axis('off')
+        plt.savefig(sarcopenia_mask_path, bbox_inches='tight', pad_inches=0)
+        plt.close()
+
+        return jsonify(
+            success=True,
+            maskUrl=f"/static/images/{id}_sarcopenia_mask.png",
+            iliopsoasArea=iliopsoas_area_cm2,
+            autochthonArea=autochthon_area_cm2
+        )
+
+    except Exception as e:
+        return jsonify(success=False, message=str(e)), 500
 @app.route('/output_xr')
 def output_xr():
     return render_template('output_xr.html')
