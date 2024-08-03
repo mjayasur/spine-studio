@@ -1,6 +1,8 @@
 import os
 from flask import Flask, request, redirect, url_for, render_template, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
+from matplotlib.patches import Ellipse
+
 import sys
 import nibabel as nib
 import uuid
@@ -129,7 +131,7 @@ def fit_ellipse_to_rectangle(rect_coords, image_slice):
     axis_b = (bottom - up) / 2 - 2  # Semi-minor axis
     
     # Create an ellipse patch
-    ellipse = patches.Ellipse((center_x, center_y), width=axis_a*2, height=axis_b*2, edgecolor='green', facecolor='none')
+    ellipse = Ellipse((center_x, center_y), width=axis_a*2, height=axis_b*2, edgecolor='green', facecolor='none')
                 
     # Create a grid of the same size as the image
     y_indices, x_indices = np.ogrid[:image_slice.shape[0], :image_slice.shape[1]]
@@ -171,26 +173,30 @@ def calculate_hounsfield():
         mask_data = mask_nib.get_fdata()
 
         # Get the axial slice index based on the vertebrae ID
-        axial_slice_indices = np.where(mask_data == vertebrae_id)[2]
+        axial_slice_indices = np.where(mask_data == vertebrae_id)[1]
         if len(axial_slice_indices) == 0:
             return jsonify(success=False, message="Vertebrae level not found in the mask"), 404
 
         axial_slice_index = axial_slice_indices[len(axial_slice_indices) // 2]
 
         # Extract the axial slice for the input and mask
-        axial_slice = input_data[:, :, axial_slice_index]
-        mask_slice = (mask_data[:, :, axial_slice_index] == vertebrae_id).astype(np.uint8)
+        axial_slice = input_data[:, axial_slice_index, :]
+        mask_slice = np.where(mask_data[:, axial_slice_index, :] == vertebrae_id, 1, -2).astype(np.int8)
 
         # Apply Kadane's algorithm to find the largest rectangle
         rect_coords = kadanes_algorithm(mask_slice)
         ellipse, average_hu = fit_ellipse_to_rectangle(rect_coords, axial_slice)
 
         # Get the midsagittal slice index
-        midsagittal_index = input_data.shape[1] // 2
+        midsagittal_index = input_data.shape[2] // 2
 
         # Extract the midsagittal slice for the input and mask
-        midsagittal_slice = input_data[:, midsagittal_index, :]
-        mask_sagittal_slice = (mask_data[:, midsagittal_index, :] == vertebrae_id).astype(np.uint8)
+        midsagittal_slice = input_data[:,  :,midsagittal_index]
+        mask_sagittal_slice = (mask_data[:,  :, midsagittal_index] == vertebrae_id).astype(np.uint8)
+
+        # Rotate the midsagittal slice by 90 degrees
+        midsagittal_slice_rotated = np.rot90(midsagittal_slice)
+        mask_sagittal_slice_rotated = np.rot90(mask_sagittal_slice)
 
         # Create unique filenames for the resulting images
         output_uuid = str(uuid.uuid4())
@@ -209,10 +215,10 @@ def calculate_hounsfield():
         plt.savefig(roi_placement_path, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-        # Save the midsagittal slice with mask overlay
+        # Save the rotated midsagittal slice with mask overlay
         fig, ax = plt.subplots()
-        ax.imshow(midsagittal_slice, cmap='gray')
-        ax.imshow(mask_sagittal_slice, cmap='jet', alpha=0.5)
+        ax.imshow(midsagittal_slice_rotated, cmap='gray')
+        ax.imshow(mask_sagittal_slice_rotated, cmap='jet', alpha=0.5)
         plt.axis('off')
         plt.savefig(sagittal_slice_path, bbox_inches='tight', pad_inches=0)
         plt.close()
