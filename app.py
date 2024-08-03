@@ -1,8 +1,7 @@
 import os
 from flask import Flask, request, redirect, url_for, render_template, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
-import sys
-import threading
+
 import nibabel as nib
 import numpy as np
 import matplotlib
@@ -15,12 +14,7 @@ from io import BytesIO
 from matplotlib.patches import Rectangle, Ellipse
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
-
-# Set the root path directly
-root_path = os.getcwd()
-
 app = Flask(__name__)
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/')
@@ -81,5 +75,4 @@ def loading():
     return render_template('loading.html')
 
 if __name__ == '__main__':
-    threading.Thread(target=app.run, kwargs={"use_reloader": False}).start()
-
+    app.run(host='0.0.0.0', port=5002, debug=True)
