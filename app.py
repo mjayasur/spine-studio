@@ -14,7 +14,14 @@ from io import BytesIO
 from matplotlib.patches import Rectangle, Ellipse
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
-app = Flask(__name__, root_path=os.path.dirname(os.path.abspath(__file__)))
+# Determine the root path based on the execution context
+if '__file__' in globals():
+    root_path = os.path.dirname(os.path.abspath(__file__))
+else:
+    root_path = os.getcwd()
+
+app = Flask(__name__, root_path=root_path)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/')
