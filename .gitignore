@@ -3,3 +3,4 @@ mask.nii.gz
 __pycache__/*
 old
 venv
+myenv
