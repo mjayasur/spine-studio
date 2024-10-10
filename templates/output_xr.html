@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Page</title>
+    <title>XR Output - Compression Fracture Detection</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap" rel="stylesheet">
@@ -28,40 +27,40 @@
             margin-bottom: 40px;
         }
 
-        .scan-type,
-        .ct-text,
-        .change-button,
-        .bmd-calculator,
-        .sarcopenia-calculator {
-            margin-bottom: 20px;
-        }
-
-        .scan-type {
+        .section-title {
             font-size: 24px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 2px;
             color: #151439;
+            margin-bottom: 20px;
         }
 
-        .ct-text {
-            font-size: 20px;
-            color: rgba(21, 20, 57, 0.4);
+        .dropdown {
+            margin-bottom: 20px;
         }
 
-        .change-button {
-            width: 80px;
-            height: 40px;
-            border-radius: 32px;
+        .dropdown label {
+            font-family: 'DM Sans', sans-serif;
             font-size: 14px;
-            border: 2px solid #151439;
-            background-color: transparent;
-            color: #151439;
-            text-transform: uppercase;
-            cursor: pointer;
+            color: #757575;
+            display: block;
+        }
+
+        .dropdown select {
+            margin-top: 10px;
+            padding: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            color: #757575;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            width: 100%;
         }
 
         .calculate-button {
+            margin-top: 20px;
+            padding: 10px 20px;
             border-radius: 32px;
             font-size: 14px;
             border: 2px solid #151439;
@@ -71,213 +70,139 @@
             cursor: pointer;
         }
 
-        .change-button:hover,
         .calculate-button:hover {
             background-color: #151439;
             color: #ffffff;
         }
 
-        .divider {
-            width: 50%;
-            height: 2px;
-            background-color: #EBEAED;
-            border: none;
-            border-radius: 1px;
-            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .bmd-calculator,
-        .sarcopenia-calculator {
-            font-size: 24px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #151439;
-        }
-
-        .bmd-calculator-box,
-        .sarcopenia-calculator-box {
-            width: 100%;
-            max-width: 675px;
+        .result-box {
+            margin-top: 30px;
+            padding: 20px;
             background: #EBEAED;
             border: 1px solid #000000;
             border-radius: 23px;
-            padding: 20px;
-            box-sizing: border-box;
-            display: block;
         }
 
-        .bmd-calculator-box .columns,
-        .sarcopenia-calculator-box .columns {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .bmd-calculator-box .column,
-        .sarcopenia-calculator-box .column {
-            flex: 1;
-            margin-right: 20px;
-        }
-
-        .bmd-calculator-box .column:last-child,
-        .sarcopenia-calculator-box .column:last-child {
-            margin-right: 0;
-        }
-
-        .bmd-calculator-box h2,
-        .sarcopenia-calculator-box h2 {
-            font-family: 'DM Sans', sans-serif;
-            font-style: normal;
-            font-weight: 400;
-            font-size: 20px;
-            line-height: 26px;
-            color: #757575;
-            margin: 10px 0;
-        }
-
-        .bmd-calculator-box .column .divider,
-        .sarcopenia-calculator-box .column .divider {
-            width: 100%;
-            height: 2px;
-            background-color: #bababa;
-            border: none;
-            border-radius: 1px;
-            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
-            margin: 10px 0;
-        }
-
-        .bmd-calculator-box hr,
-        .sarcopenia-calculator-box hr {
-            border: 1px solid #4F4F4F;
-            transform: rotate(-0.33deg);
-            margin: 20px 0;
-        }
-
-        .bmd-calculator-box .dropdown label,
-        .sarcopenia-calculator-box .dropdown label {
-            font-family: 'DM Sans', sans-serif;
-            font-style: normal;
-            font-weight: 400;
-            font-size: 14px;
-            line-height: 20px;
-            color: #757575;
-            display: block;
-            margin-bottom: 0px;
-        }
-
-        .bmd-calculator-box .dropdown select,
-        .sarcopenia-calculator-box .dropdown select {
-            margin-top: 20px;
-            padding: 10px;
-            font-family: 'DM Sans', sans-serif;
-            font-style: normal;
-            font-weight: 400;
-            font-size: 20px;
-            line-height: 26px;
-            color: #757575;
-            border: 1px solid #000000;
-            border-radius: 5px;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-
-        .bmd-calculator-box .dropdown select+select,
-        .sarcopenia-calculator-box .dropdown select+select {
-            margin-top: 30px;
-        }
-
-        .bmd-calculator-box img,
-        .sarcopenia-calculator-box img {
-            max-height: 300px;
+        .result-box img {
+            max-height: 500px;
             width: auto;
             border: 1px solid #000000;
             display: block;
-            align-items: center;
+            margin: 20px auto;
         }
 
-        .bmd-calculator-box p,
-        .sarcopenia-calculator-box p {
-            font-family: 'DM Sans', sans-serif;
-            font-style: normal;
-            font-weight: 400;
+        .result-box h2 {
             font-size: 20px;
-            line-height: 26px;
             color: #757575;
-        }
-
-        .output-text {
-            font-family: 'Poppins', sans-serif;
-            font-style: normal;
-            font-weight: 400;
-            font-size: 64px;
-            line-height: 96px;
-            color: #000000;
-            text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-            margin-bottom: 200px;
+            text-align: center;
         }
 
         .highlight {
             color: rgb(255, 0, 0);
-        }
-
-        .grid-container {
-            display: flex;
-            flex-wrap: wrap;
-        }
-
-        .left-side,
-        .right-side {
-            flex: 1;
-            padding: 20px;
-        }
-
-        .left-side {
-            max-width: 50%;
-        }
-
-        .right-side {
-            max-width: 50%;
+            font-size: 20px;
+            font-weight: bold;
         }
     </style>
 </head>
 
 <body>
-    <div id="index-content">
+    <div id="output-xr-content">
         <header class="header">
             <div class="logo">
-                <img src="{{ url_for('static', filename='images/image 1.png') }}" alt="Logo">
+                <a href="/"><img src="{{ url_for('static', filename='images/image 1.png') }}" alt="Logo"> </a>
             </div>
             <nav>
                 <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="about.html">About</a></li>
-                    <li><a href="users.html">Users</a></li>
-                    <li><a href="contact.html">Contact Us</a></li>
+                    <li><a href="/index.html">Home</a></li>
+                    <li><a href="/about.html">About</a></li>
+                    <li><a href="/users.html">Users</a></li>
+                    <li><a href="/contact.html">Contact Us</a></li>
                 </ul>
             </nav>
         </header>
         <main class="main-content">
-            <div class="output-text">Spine Studio</div>
-            <div class="grid-container">
-                <div class="left-side">
-                    <div class="section">
-                        <div class="scan-type">Scan Type</div>
-                        <div class="ct-text">X-Ray</div>
-                        <button class="change-button">Change</button>
-                    </div>
-                    <div class="divider" style="margin-bottom: 0; padding-bottom: 0;"></div> <!-- Divider Line -->
-                    <div class="section">
-                        <div class="bmd-calculator">Spondylosthesis</div>
-                        <div class="bmd-calculator-box">
-                        </div>
-                    </div>
+            <!-- Compression Fracture Detection Section -->
+            <div class="section">
+                <div class="section-title">Compression Fracture Detection</div>
+                <div class="dropdown">
+                    <label for="vertebrae-compression">Select Vertebra (L1-L5)</label>
+                    <select id="vertebrae-compression">
+                        <option value="L1">L1</option>
+                        <option value="L2">L2</option>
+                        <option value="L3">L3</option>
+                        <option value="L4">L4</option>
+                        <option value="L5">L5</option>
+                    </select>
                 </div>
+                <button class="calculate-button" onclick="calculateCompressionFracture()">Calculate</button>
+                <div id="compression-result" class="result-box" style="display: none;">
+                    <h2>Compression Fracture Results</h2>
+                    <img src="" id="compression-image" alt="Compression Fracture Image">
+                    <p>Height Loss: <span class="highlight" id="height-loss">0%</span></p>
+                    <p>Genant Classification: <span class="highlight" id="genant-classification">No compression
+                            fracture</span></p>
+                </div>
+            </div>
 
+            <!-- Spondylolisthesis Detection Section -->
+            <div class="section">
+                <div class="section-title">Spondylolisthesis Detection</div>
+                <button class="calculate-button" onclick="calculateSpondylolisthesis()">Calculate</button>
+                <div id="spondylolisthesis-result" class="result-box" style="display: none;">
+                    <img src="" id="spondylolisthesis-image" alt="Spondylolisthesis Image">
+                    <p>Percent Slipped: <span class="highlight" id="slippage-percentage">0%</span></p>
+                    <p>Meyerding Classification: <span class="highlight" id="meyerding-classification">Grade I</span>
+                    </p>
+                </div>
             </div>
         </main>
     </div>
 
     <script>
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            return { id };
+        }
+
+        function calculateCompressionFracture() {
+            const vertebrae = document.getElementById('vertebrae-compression').value;
+            const { id } = getUrlParams();
+
+            fetch(`/calculate-compression-fracture?id=${id}&vertebrae=${vertebrae}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('compression-image').src = data.imageUrl;
+                        document.getElementById('height-loss').textContent = data.heightLoss;
+                        document.getElementById('genant-classification').textContent = data.genantClassification;
+
+                        document.getElementById('compression-result').style.display = 'block';
+                    } else {
+                        alert(data.message || 'An error occurred while processing your request.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function calculateSpondylolisthesis() {
+            const { id } = getUrlParams();
+
+            fetch(`/calculate-spondylolisthesis?id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('spondylolisthesis-image').src = data.imageUrl;
+                        document.getElementById('slippage-percentage').textContent = data.slippagePercentage;
+                        document.getElementById('meyerding-classification').textContent = data.meyerdingClassification;
+
+                        document.getElementById('spondylolisthesis-result').style.display = 'block';
+                    } else {
+                        alert(data.message || 'An error occurred while processing your request.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
     </script>
 </body>
 

@@ -3,18 +3,26 @@ from flask import Flask, request, redirect, url_for, render_template, send_from_
 from werkzeug.utils import secure_filename
 from matplotlib.patches import Ellipse
 from matplotlib.colors import ListedColormap
-
+from PIL import Image
 import sys
 import nibabel as nib
 import uuid
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
+from ultralytics import YOLO
+# Load the YOLO model for X-ray images
+# Replace the path with the actual path to your trained YOLO model weights
+model = YOLO("last.pt")  # Path to your last saved weights
+
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
 from totalsegmentator.python_api import totalsegmentator
 import base64
 from io import BytesIO
+import io
+import csv
+import requests
 from matplotlib.patches import Rectangle, Ellipse
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
@@ -74,21 +82,151 @@ def upload_file():
     available_verts = []
 
     for file in files:
-        if file:
+        if file and "nii" in file.filename:
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             input_nib = nib.load(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             output_nib = totalsegmentator(input_nib)
             nib.save(input_nib, os.path.join(app.config['NIB_FOLDER'], f"{output_uuid}.nii.gz"))
             nib.save(output_nib, os.path.join(app.config['NIB_FOLDER'], f"{output_uuid}_mask.nii.gz"))
-            
+            modality = 'CT'
             for val in np.unique(output_nib.get_fdata()):
                 if val in vertebrae_dict:
                     available_verts.append(vertebrae_dict[val].split("_")[1])
             print (output_uuid)
             print (available_verts)
-    
-    return jsonify(success=True, message="Files successfully uploaded", uuid=output_uuid, vertebrae=sorted(available_verts))
+        elif file and (".jpg" in file.filename.lower() or ".jpeg" in file.filename.lower() or ".png" in file.filename.lower()):
+            # Handle JPEG/PNG files (X-ray images)
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{output_uuid}_{filename}")
+            file.save(filepath)
+            modality = 'XR'
+            # For X-ray, available vertebrae are L1-L5
+            available_verts = ['L1', 'L2', 'L3', 'L4', 'L5']
+
+    if modality == 'CT':
+        return jsonify(success=True, message="Files successfully uploaded", uuid=output_uuid, modality=modality, vertebrae=sorted(available_verts))
+    elif modality == 'XR':
+        return jsonify(success=True, message="Files successfully uploaded", uuid=output_uuid, modality=modality, vertebrae=available_verts)
+    else:
+        return jsonify(success=False, message="Unsupported file type")
+
+def euclidean_distance(p1, p2):
+    """Calculate the Euclidean distance between two points (x1, y1) and (x2, y2)."""
+    return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def classify_height_loss(left_height, right_height):
+    """Classify height loss severity based on the percentage of vertebral height loss."""
+    # Determine which side is smaller (compressed)
+    min_height = min(left_height, right_height)
+    max_height = max(left_height, right_height)
+
+    # Calculate the percentage of height loss
+    height_loss_percentage = (max_height - min_height) / max_height * 100
+
+    # Classify the height loss based on the thresholds
+    if height_loss_percentage <= 20:
+        classification = "No compression fracture"
+    elif height_loss_percentage <= 25:
+        classification = "Mild"
+    elif 25 < height_loss_percentage <= 40:
+        classification = "Moderate"
+    else:
+        classification = "Severe"
+
+    return classification, height_loss_percentage
+
+@app.route('/calculate-compression-fracture', methods=['GET'])
+def calculate_compression_fracture():
+    id = request.args.get('id')
+    vertebrae = request.args.get('vertebrae')
+
+    if not id or not vertebrae:
+        return jsonify(success=False, message="Missing parameters"), 400
+
+    # try:
+    # Map vertebrae to indices (assuming L1-L5)
+    vertebrae_map = {'L1': 0, 'L2': 1, 'L3': 2, 'L4': 3, 'L5': 4}
+    if vertebrae not in vertebrae_map:
+        return jsonify(success=False, message="Invalid vertebrae level"), 400
+
+    vertebrae_index = vertebrae_map[vertebrae]
+
+    # Load the uploaded image
+    image_filenames = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(id)]
+    if not image_filenames:
+        return jsonify(success=False, message="Image not found"), 404
+
+    image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filenames[0])
+    original_image = Image.open(image_path)
+
+    # Perform inference to get the predicted keypoints
+    results = model.predict(source=image_path, save=False)
+
+    # Check if any results were returned
+    if not results:
+        return jsonify(success=False, message="No keypoints detected"), 404
+
+    # Extract the predictions (keypoints)
+    result = results[0]  # Assuming one image
+    keypoints = result.keypoints.xy[0].cpu().numpy()  # Extract keypoints for the detected object
+    print (keypoints)
+    # Process only the first 20 keypoints (L1-L5 vertebrae)
+    num_vertebrae = 5  # Since we're only processing L1-L5
+
+    heights = []  # Store heights for each vertebra
+    classifications = []  # Store classification results for each vertebra
+
+    # Prepare the figure for visualization
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(original_image)
+    ax.axis('off')
+
+    i = vertebrae_index
+    print (i)
+    # Get the 4 keypoints for the current vertebra (i-th vertebra)
+    k1 = keypoints[i * 4 + 0]  # Keypoint 1
+    k2 = keypoints[i * 4 + 1]  # Keypoint 2
+    k3 = keypoints[i * 4 + 2]  # Keypoint 3
+    k4 = keypoints[i * 4 + 3]  # Keypoint 4
+
+    # Calculate the heights for each side of the vertebra
+    left_height = euclidean_distance(k1, k3)  # Distance between keypoint 1 and 3
+    right_height = euclidean_distance(k2, k4)  # Distance between keypoint 2 and 4
+    heights.append((left_height, right_height))
+
+    # Classify the height loss
+    classification, height_loss_percentage = classify_height_loss(left_height, right_height)
+    classifications.append((classification, height_loss_percentage))
+
+    # Draw blue lines to represent the heights
+    ax.plot([k1[0], k3[0]], [k1[1], k3[1]], 'b-', lw=2)  # Line between keypoint 1 and 3 (left side)
+    ax.plot([k2[0], k4[0]], [k2[1], k4[1]], 'b-', lw=2)  # Line between keypoint 2 and 4 (right side)
+
+    # Mark the keypoints for visualization (optional)
+    ax.scatter([k1[0], k2[0], k3[0], k4[0]], [k1[1], k2[1], k3[1], k4[1]], c='red', s=40)
+
+    # Save the image with keypoints and lines
+    output_uuid = str(uuid.uuid4())
+    output_image_path = os.path.join(app.config['IMAGE_FOLDER'], f"{output_uuid}_keypoints.png")
+    plt.savefig(output_image_path, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+    # Get the classification and height loss for the selected vertebra
+    left_height, right_height = heights[0]
+    classification, height_loss_percentage = classifications[0]
+
+    # Prepare the response
+    return jsonify(
+        success=True,
+        imageUrl=f"/static/images/{output_uuid}_keypoints.png",
+        heightLoss=f"{height_loss_percentage:.2f}%",
+        genantClassification=classification
+    )
+
+    # except Exception as e:
+    #     print (str(e))
+    #     return jsonify(success=False, message=str(e)), 500
 
 def load_nii(filepath):
     return nib.load(filepath).get_fdata()
@@ -306,6 +444,214 @@ def calculate_sarcopenia():
 
     except Exception as e:
         return jsonify(success=False, message=str(e)), 500
+
+from shapely.geometry import LineString, Point
+
+@app.route('/calculate-spondylolisthesis', methods=['GET'])
+def calculate_spondylolisthesis():
+    id = request.args.get('id')
+
+    if not id:
+        return jsonify(success=False, message="Missing parameters"), 400
+
+    # Load the uploaded image
+    image_filenames = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(id)]
+    if not image_filenames:
+        return jsonify(success=False, message="Image not found"), 404
+
+    image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filenames[0])
+    original_image = Image.open(image_path)
+
+    # Perform inference to get the predicted keypoints
+    results = model.predict(source=image_path, save=False)
+
+    # Check if any results were returned
+    if not results:
+        return jsonify(success=False, message="No keypoints detected"), 404
+
+    # Extract the predictions (keypoints)
+    result = results[0]  # Assuming one image
+    keypoints = result.keypoints.xy[0].cpu().numpy()  # Extract keypoints for the detected object
+
+    # Ensure that we have enough keypoints
+    expected_keypoints = 22  # 5 vertebrae * 4 keypoints + 2 keypoints for S1
+    if keypoints.shape[0] < expected_keypoints:
+        return jsonify(success=False, message="Couldn't identify all vertebrae on x-ray"), 400
+
+    # Indexing for L5 and S1 keypoints
+    # L5 keypoints indices: 16 to 19
+    # S1 keypoints indices: 20 and 21
+
+    # Keypoints for L5 (posterior cortex)
+    k2_L5 = keypoints[16 + 1]  # Second keypoint of L5 (right superior corner)
+    k4_L5 = keypoints[16 + 3]  # Fourth keypoint of L5 (right inferior corner)
+
+    # Line representing posterior cortex of L5
+    posterior_cortex_L5 = [k2_L5, k4_L5]
+
+    # Keypoints for S1 superior endplate
+    k1_S1 = keypoints[20]  # Left superior corner of S1
+    k2_S1 = keypoints[21]  # Right superior corner of S1
+
+    # Line representing superior endplate of S1
+    superior_endplate_S1 = [k1_S1, k2_S1]
+
+    # Divide the S1 superior endplate into four equal parts
+    # Calculate points at 25%, 50%, and 75% along the line
+    def interpolate_points(p1, p2, fractions):
+        points = []
+        for f in fractions:
+            x = p1[0] + f * (p2[0] - p1[0])
+            y = p1[1] + f * (p2[1] - p1[1])
+            points.append([x, y])
+        return points
+
+    fractions = [0.25, 0.5, 0.75]
+    division_points = interpolate_points(k1_S1, k2_S1, fractions)
+
+    # Prepare the figure for visualization
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(original_image)
+    ax.axis('off')
+
+    # Plot the S1 superior endplate
+    ax.plot([k1_S1[0], k2_S1[0]], [k1_S1[1], k2_S1[1]], 'g-', lw=2, label='S1 Superior Endplate')
+
+    # Plot the division lines
+    quadrant_lines = []
+    for idx, point in enumerate(division_points):
+        # Calculate orthogonal lines at division points
+        def orthogonal_line(p1, p2, point):
+            # Get direction vector of the original line
+            dx = p2[0] - p1[0]
+            dy = p2[1] - p1[1]
+            # Orthogonal direction
+            ortho_dx = -dy
+            ortho_dy = dx
+            # Normalize
+            length = np.hypot(ortho_dx, ortho_dy)
+            ortho_dx /= length
+            ortho_dy /= length
+            # Extend the line for plotting
+            factor = 1000  # Adjust as needed
+            x1 = point[0] - ortho_dx * factor
+            y1 = point[1] - ortho_dy * factor
+            x2 = point[0] + ortho_dx * factor
+            y2 = point[1] + ortho_dy * factor
+            return [x1, x2], [y1, y2]
+
+        x_line, y_line = orthogonal_line(k1_S1, k2_S1, point)
+        ax.plot(x_line, y_line, 'm--', lw=1)
+        quadrant_lines.append(LineString([(x_line[0], y_line[0]), (x_line[1], y_line[1])]))
+
+    # Plot the posterior cortex of L5
+    ax.plot([k2_L5[0], k4_L5[0]], [k2_L5[1], k4_L5[1]], 'r-', lw=2, label='L5 Posterior Cortex')
+
+    # Create LineString objects
+    line_posterior_cortex = LineString([k2_L5, k4_L5])
+    line_superior_endplate = LineString([k1_S1, k2_S1])
+
+    # Find intersection point between posterior cortex of L5 and S1 superior endplate
+    intersection = line_posterior_cortex.intersection(line_superior_endplate)
+
+    if intersection.is_empty or not isinstance(intersection, Point):
+        # If no intersection, consider no slippage
+        classification = "No anterolisthesis"
+        slippage_percentage = 0.0
+        # For visualization, project the posterior cortex onto the S1 endplate
+        point_to_project = Point(line_posterior_cortex.coords[0])  # Convert to Point object
+        projected_distance = line_superior_endplate.project(point_to_project)
+        projected_point = line_superior_endplate.interpolate(projected_distance)
+        intersection_x = projected_point.x
+        intersection_y = projected_point.y
+        # Plot the projected point
+        ax.plot(intersection_x, intersection_y, 'bo', markersize=8, label='Projected Point')
+    else:
+        # Project the intersection point onto the S1 superior endplate
+        total_length = line_superior_endplate.length
+        distance_along_line = line_superior_endplate.project(intersection)
+        proportion = distance_along_line / total_length
+
+        # Determine the quadrant based on the proportion
+        if proportion <= 0.25:
+            classification = "Grade I"
+        elif proportion <= 0.5:
+            classification = "Grade II"
+        elif proportion <= 0.75:
+            classification = "Grade III"
+        elif proportion <= 1.0:
+            classification = "Grade IV"
+        else:
+            classification = "Grade V (Spondyloptosis)"
+
+        slippage_percentage = proportion * 100
+
+        # Plot the intersection point
+        ax.plot(intersection.x, intersection.y, 'bo', markersize=8, label='Intersection Point')
+
+    # Add legends and annotations
+    ax.legend()
+
+    # Save the image with lines
+    output_uuid = str(uuid.uuid4())
+    output_image_path = os.path.join(app.config['IMAGE_FOLDER'], f"{output_uuid}_spondylolisthesis.png")
+    plt.savefig(output_image_path, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+    # Prepare the response
+    return jsonify(
+        success=True,
+        imageUrl=f"/static/images/{output_uuid}_spondylolisthesis.png",
+        slippagePercentage=f"{slippage_percentage:.2f}%",
+        meyerdingClassification=classification
+    )
+
+@app.route('/calculate-insurance', methods=['GET'])
+def calculate_insurance():
+    # Get data from query parameters (GET request)
+    radiology_report = request.args.get('radiology-report')
+
+    if not radiology_report:
+        return 'Missing required parameter: radiology-report', 400
+
+    # Create CSV with required columns
+    csv_file = io.StringIO()
+    writer = csv.DictWriter(csv_file, fieldnames=[
+        'institution', 'PatientID', 'AccessionNumber',
+        'deid_english_text', 'PatientSex', 'PatientAge', 'StudyDate'
+    ])
+    writer.writeheader()
+    writer.writerow({
+        'institution': '',
+        'PatientID': '',
+        'AccessionNumber': '',
+        'deid_english_text': radiology_report,
+        'PatientSex': "",
+        'PatientAge': "",
+        'StudyDate': ''
+    })
+
+    csv_file.seek(0)
+
+    # Send POST request to the endpoint with the CSV file, using 'filename' field correctly
+    files = {'filename': ('input.csv', csv_file.read(), 'text/csv')}  # 'filename' key points to the file tuple
+
+    response = requests.post(
+        'https://www.nlp.neuro-innovate.com/neuroinnov/multiple_files',
+        files=files  # Send the file with the correct 'filename' key
+    )
+
+    if response.status_code == 200:
+        # Process the response
+        response_csv = io.StringIO(response.text)
+        reader = csv.DictReader(response_csv)
+        results = list(reader)
+        result_data = results[0]  # Assuming only one record
+
+        # Return JSON response with the result
+        return jsonify(result_data)
+    else:
+        return 'Error in processing the insurance calculation.', 500
 @app.route('/output_xr')
 def output_xr():
     return render_template('output_xr.html')
@@ -317,22 +663,9 @@ def output_ct():
 @app.route('/output_mri')
 def output_mri():
     return render_template('output_mri.html')
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-@app.route('/users')
-def users():
-    return render_template('users.html')
-
-@app.route('/contact')
-def contact():
-    return render_template('contact.html')
-
-@app.route('/get_started')
-def get_started():
-    return render_template('get_started.html')
+@app.route('/output_insurance')
+def output_insurance():
+    return render_template('output_insurance.html')
 
 @app.route('/loading')
 def loading():

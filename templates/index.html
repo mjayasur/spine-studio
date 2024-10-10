@@ -7,20 +7,226 @@
     <title>Home Page</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
+    <style>
+        /* Modal Styles */
+
+
+        .modal-content {
+            background-color: #fff;
+            /* margin: 5% auto; */
+            /* 5% from the top and centered */
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            right: 25px;
+            top: 15px;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+        }
+
+        .upload-title {
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #333;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .upload-form {
+            width: 100%;
+        }
+
+        .upload-box {
+            flex: 1;
+            min-width: 280px;
+            background-color: #fafafa;
+            border: 2px dashed #ccc;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .cloud-image {
+            width: 80px;
+            height: auto;
+            cursor: pointer;
+        }
+
+        .upload-box p {
+            margin-top: 20px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .upload-box a {
+            color: #007BFF;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .upload-box a:hover {
+            text-decoration: underline;
+        }
+
+        #textInputBox textarea {
+            width: 100%;
+            height: 250px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 16px;
+            resize: vertical;
+            background-color: #fff;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+        }
+
+        .upload-options {
+            margin-top: 30px;
+        }
+
+        #insuranceFields {
+            margin-top: 20px;
+        }
+
+        #insuranceFields label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+            font-size: 16px;
+        }
+
+        #insuranceFields select,
+        #insuranceFields input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            background-color: #fff;
+            color: #333;
+            font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .options-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .options-line {
+            width: 100%;
+            height: 2px;
+            background-color: #eee;
+            margin-bottom: 20px;
+        }
+
+        .upload-options label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+            font-size: 16px;
+        }
+
+        .upload-options select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            background-color: #fff;
+            color: #333;
+            font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
+        }
+
+        .button-container {
+            margin-top: 30px;
+            text-align: right;
+        }
+
+        .upload-btn {
+            background-color: #007BFF;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .upload-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .cancel-btn {
+            background-color: #ccc;
+            color: #333;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .cancel-btn:hover {
+            background-color: #999;
+        }
+
+        @media screen and (max-width: 768px) {
+            .upload-container {
+                flex-direction: column;
+            }
+
+            .upload-box {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div id="index-content">
         <header class="header">
             <div class="logo">
-                <img src="{{ url_for('static', filename='images/image 1.png') }}" alt="Logo">
+                <a href="/"><img src="{{ url_for('static', filename='images/image 1.png') }}" alt="Logo"> </a>
             </div>
             <nav>
                 <ul>
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('about') }}">About</a></li>
-                    <li><a href="{{ url_for('users') }}">Users</a></li>
-                    <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Users</a></li>
+                    <li><a href="#">Contact Us</a></li>
                 </ul>
             </nav>
         </header>
@@ -33,29 +239,35 @@
         <div id="uploadModal" class="modal">
             <div class="modal-content">
                 <span class="close" onclick="closePopup()">&times;</span>
-                <h2 class="upload-title">Upload your files</h2>
+                <h2 class="upload-title">Choose your predictive model</h2>
                 <div class="upload-container">
                     <form id="uploadForm" method="post" enctype="multipart/form-data" action="/upload-file"
                         class="upload-form">
-                        <div class="upload-box">
+                        <div class="upload-box" id="fileUploadBox">
                             <input type="file" id="fileInput" name="file" style="display:none;" multiple>
                             <img src="{{ url_for('static', filename='images/Upload cloud.png') }}" alt="cloud"
                                 class="cloud-image" onclick="document.getElementById('fileInput').click();">
                             <p>Drop files to upload <br>or <a href="#"
                                     onclick="document.getElementById('fileInput').click(); return false;">browse</a></p>
                         </div>
+                        <div class="upload-box" id="textInputBox" style="display:none;">
+                            <textarea id="radiologyReport" name="radiology-report"
+                                placeholder="Enter your radiology report here"></textarea>
+                            <div id="results"></div>
+                        </div>
                         <div class="upload-options">
                             <h3 class="options-title">Options</h3>
                             <div class="options-line"></div>
-                            <label for="type-of-imaging">Type of imaging</label>
-                            <select id="type-of-imaging" name="type-of-imaging">
-                                <option value="CT">CT</option>
-                                <option value="MRI">MRI</option>
-                                <option value="XR">XR</option>
+                            <label for="type-of-imaging">Models</label>
+                            <select id="type-of-imaging" name="type-of-imaging" onchange="handleModelChange()">
+                                <option value="CT">Bone mineral density and sarcopenia (CT)</option>
+                                <option value="MRI">Bone mineral density and sarcopenia (MR)</option>
+                                <option value="XR">Bone mineral density and sarcopenia (XR)</option>
+                                <option value="insurance">Insurance rejection predictor</option>
                             </select>
                             <div class="button-container">
-                                <button type="button" class="upload-btn" onclick="handleUploadClick()">Upload
-                                    Files</button>
+                                <button type="button" class="upload-btn" id="actionButton"
+                                    onclick="handleUploadClick()">Upload Files</button>
                                 <button type="button" class="cancel-btn" onclick="closePopup()">Cancel</button>
                             </div>
                         </div>
