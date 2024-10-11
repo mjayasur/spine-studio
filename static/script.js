@@ -33,44 +33,74 @@ function handleModelChange() {
 function handleUploadClick() {
     const imagingType = document.getElementById("type-of-imaging").value;
 
-    // Check if the selected option is for Insurance calculation
     if (imagingType === "insurance") {
         const radiologyReport = document.getElementById('radiologyReport').value;
+        const fileInput = document.getElementById('fileInput').files[0];
 
-        if (!radiologyReport.trim()) {
-            alert('Please enter your radiology report.');
-            return;
+        // If a CSV file is uploaded, handle the file upload
+        if (fileInput) {
+            const formData = new FormData();
+            formData.append('file', fileInput);
+
+            fetch('/calculate-insurance', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();  // Parse the JSON from the response
+                })
+                .then(data => {
+                    // Display the results in the 'results' div
+                    const resultsDiv = document.getElementById('results');
+
+                    // Construct the HTML for displaying the results
+                    resultsDiv.innerHTML = `
+                    <h3>Results:</h3>
+                    <p><strong>Feature Detection:</strong> ${data["Feature.detection"]}</p>
+                    <p><strong>Probability of Insurance Coverage:</strong> ${data["Probability.of.insurance.coverage"]}</p>
+                `;
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+
+            // If no file, use the radiology report text
+        } else if (radiologyReport.trim()) {
+            // Encode the radiology report for use in the URL
+            const encodedReport = encodeURIComponent(radiologyReport);
+
+            // Perform a GET request to the server-side endpoint
+            const url = `/calculate-insurance?radiology-report=${encodedReport}`;
+            fetch(url, {
+                method: 'GET'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();  // Parse the JSON from the response
+                })
+                .then(data => {
+                    // Display the results in the 'results' div
+                    const resultsDiv = document.getElementById('results');
+
+                    // Construct the HTML for displaying the results
+                    resultsDiv.innerHTML = `
+                    <h3>Results:</h3>
+                    <p><strong>Feature Detection:</strong> ${data["Feature.detection"]}</p>
+                    <p><strong>Probability of Insurance Coverage:</strong> ${data["Probability.of.insurance.coverage"]}</p>
+                `;
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+
+        } else {
+            alert('Please provide a CSV file or enter a radiology report.');
         }
-
-        // Encode the radiology report for use in the URL
-        const encodedReport = encodeURIComponent(radiologyReport);
-
-        // Perform a GET request to the server-side endpoint
-        const url = `/calculate-insurance?radiology-report=${encodedReport}`;
-        fetch(url, {
-            method: 'GET'
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();  // Parse the JSON from the response
-            })
-            .then(data => {
-                // Display the results in the 'results' div
-                const resultsDiv = document.getElementById('results');
-
-                // Construct the HTML for displaying the results
-                resultsDiv.innerHTML = `
-                <h3>Results:</h3>
-                <p><strong>Feature Detection:</strong> ${data["Feature.detection"]}</p>
-                <p><strong>Probability of Insurance Coverage:</strong> ${data["Probability.of.insurance.coverage"]}</p>
-            `;
-            })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
-            });
-
     } else if (imagingType === "CT" || imagingType === "MRI" || imagingType === "XR") {
         // Proceed with the file upload for CT, MRI, or XR
         console.log('Redirecting to loading page'); // Debugging line

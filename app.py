@@ -606,34 +606,47 @@ def calculate_spondylolisthesis():
         meyerdingClassification=classification
     )
 
-@app.route('/calculate-insurance', methods=['GET'])
+@app.route('/calculate-insurance', methods=['GET', 'POST'])
 def calculate_insurance():
-    # Get data from query parameters (GET request)
-    radiology_report = request.args.get('radiology-report')
+    # If it's a POST request, handle the CSV file upload
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return 'Missing required CSV file', 400
 
-    if not radiology_report:
-        return 'Missing required parameter: radiology-report', 400
+        uploaded_file = request.files['file']
+        
+        if uploaded_file.filename == '':
+            return 'No selected file', 400
+        
+        # Read the uploaded CSV file
+        csv_file = io.StringIO(uploaded_file.stream.read().decode('UTF-8'))
+        
+    # If it's a GET request, handle the radiology report text
+    elif request.method == 'GET':
+        radiology_report = request.args.get('radiology-report')
 
-    # Create CSV with required columns
-    csv_file = io.StringIO()
-    writer = csv.DictWriter(csv_file, fieldnames=[
-        'institution', 'PatientID', 'AccessionNumber',
-        'deid_english_text', 'PatientSex', 'PatientAge', 'StudyDate'
-    ])
-    writer.writeheader()
-    writer.writerow({
-        'institution': '',
-        'PatientID': '',
-        'AccessionNumber': '',
-        'deid_english_text': radiology_report,
-        'PatientSex': "",
-        'PatientAge': "",
-        'StudyDate': ''
-    })
+        if not radiology_report:
+            return 'Missing required parameter: radiology-report', 400
 
-    csv_file.seek(0)
+        # Create a CSV file from the radiology report data
+        csv_file = io.StringIO()
+        writer = csv.DictWriter(csv_file, fieldnames=[
+            'institution', 'PatientID', 'AccessionNumber',
+            'deid_english_text', 'PatientSex', 'PatientAge', 'StudyDate'
+        ])
+        writer.writeheader()
+        writer.writerow({
+            'institution': '',
+            'PatientID': '',
+            'AccessionNumber': '',
+            'deid_english_text': radiology_report,
+            'PatientSex': "",
+            'PatientAge': "",
+            'StudyDate': ''
+        })
+        csv_file.seek(0)
 
-    # Send POST request to the endpoint with the CSV file, using 'filename' field correctly
+    # Send POST request to the external service with the CSV file
     files = {'filename': ('input.csv', csv_file.read(), 'text/csv')}  # 'filename' key points to the file tuple
 
     response = requests.post(
