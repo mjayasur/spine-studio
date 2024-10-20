@@ -6,14 +6,17 @@ from matplotlib.colors import ListedColormap
 from PIL import Image
 import sys
 import nibabel as nib
+from PIL import ImageEnhance
 import uuid
 import numpy as np
 import matplotlib
+from scipy.ndimage import *
+import cv2
 matplotlib.use('Agg')
 from ultralytics import YOLO
 # Load the YOLO model for X-ray images
 # Replace the path with the actual path to your trained YOLO model weights
-model = YOLO("last.pt")  # Path to your last saved weights
+model = YOLO("best.pt")  # Path to your last saved weights
 
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
@@ -68,20 +71,162 @@ vertebrae_dict = {
     49: "vertebrae_C2",
     50: "vertebrae_C1"
 }
+# Helper function to check if two points are close
+def _is_close(point1, point2, threshold=5):
+    return abs(point1[0] - point2[0]) <= threshold and abs(point1[1] - point2[1]) <= threshold
 
+def calculate_vbq_roi(image_path):
+    results = model(image_path)
+    all_annotations = {}
+
+    for i, result in enumerate(results):
+        im_bgr = result.plot()  # BGR-order numpy array
+        im_rgb = Image.fromarray(im_bgr[..., ::-1])  # RGB-order PIL image
+
+        # Increase brightness
+        enhancer = ImageEnhance.Brightness(im_rgb)
+        im_bright = enhancer.enhance(3)  # 3 is the factor by which brightness is increased. Adjust as needed.
+
+        # Convert back to numpy array for plotting
+        im_bright_np = np.array(im_bright)
+
+        # Get bounding boxes and classes
+        bboxes, classes = result.boxes.xyxy, result.boxes.cls
+
+        # Extract centers and sort by y value
+        centers = [(int((x1 + x2) / 2), int((y1 + y2) / 2), min((x2 - x1) // 2, (y2 - y1) // 2)) for x1, y1, x2, y2 in bboxes]
+        centers_sorted = sorted(centers, key=lambda x: x[1], reverse=True)  # Sort by y value in descending order
+
+        # Filter out close duplicates
+        filtered_centers = []
+        for center in centers_sorted[::-1]:
+            if all(not _is_close(center, existing_center) for existing_center in filtered_centers):
+                filtered_centers.insert(0, center)
+        filtered_centers = filtered_centers[1:5]
+
+        # Collecting annotations
+        image_annotations = []
+        j = 0
+        for center_x, center_y, radius in filtered_centers[::-1]:
+            image_annotations.append({
+                "x": int(center_x),
+                "y": int(center_y),
+                "radius": int(radius),
+                "annotation": f"L{j + 1}"  # Assuming all these are vertebral annotations
+            })
+            j += 1
+
+        L3_idx = min(len(filtered_centers) - 1, 1)
+        box_x1 = int(filtered_centers[L3_idx][0] + filtered_centers[L3_idx][2])
+        box_y1 = int(filtered_centers[L3_idx][1] - 0.75 * filtered_centers[L3_idx][2])
+        box_x2 = int(filtered_centers[L3_idx][0] + 2 * filtered_centers[L3_idx][2])
+        box_y2 = int(filtered_centers[L3_idx][1] + 0.75 * filtered_centers[L3_idx][2])
+
+        # Ensure indices are within the bounds of the image
+        box_x1 = max(0, box_x1)
+        box_y1 = max(0, box_y1)
+        box_x2 = min(result.orig_img.shape[1], box_x2)
+        box_y2 = min(result.orig_img.shape[0], box_y2)
+
+        # Extract the region of interest (ROI) to the right of the L3 index
+        roi = result.orig_img[box_y1:box_y2, box_x1:box_x2]
+
+        # Convert ROI to grayscale if it's not already (assuming it might be an RGB image)
+        if roi.ndim == 3 and roi.shape[2] == 3:
+            roi_gray = np.mean(roi, axis=2).astype(np.float32)
+        else:
+            roi_gray = roi.astype(np.float32)
+
+        # Apply a uniform filter to calculate the mean values in 7x7 regions
+        mean_filter = uniform_filter(roi_gray, size=6)
+
+        # Find the coordinates of the smallest mean value
+        min_mean_y, min_mean_x = np.unravel_index(np.argmin(mean_filter), mean_filter.shape)
+        csf_x = box_x1 + min_mean_x + 3  # Center of the 7x7 box
+        csf_y = box_y1 + min_mean_y + 3  # Center of the 7x7 box
+
+        # Add CSF annotation
+        image_annotations.append({
+            "x": int(csf_x),
+            "y": int(csf_y),
+            "radius": 3,
+            "annotation": "CSF"
+        })
+
+        # Add image annotations to all_annotations
+        all_annotations[os.path.basename(image_path)] = image_annotations
+
+    return all_annotations
+
+# Load image and extract pixel intensities
+def load_image(filepath):
+    return np.array(Image.open(filepath).convert('L'))  # Convert image to grayscale
+
+def extract_intensity(image, annotation):
+    x, y, radius = annotation['x'], annotation['y'], annotation['radius']
+    mask = np.zeros(image.shape, dtype=np.uint8)
+    mask = cv2.circle(mask, (int(x), int(y)), int(radius), 1, thickness=-1)
+    return image[mask == 1]
+
+def calculate_median_intensity(image, annotations):
+    intensities = {ann['annotation']: extract_intensity(image, ann) for ann in annotations}
+    median_intensities = {key: np.median(val) for key, val in intensities.items()}
+    return median_intensities
+
+# Calculate VBQ score
+def calculate_vbq(median_intensities):
+    vertebra_medians = list(median_intensities.values())
+    csf_median = median_intensities['CSF']
+    vbq_score = np.median(vertebra_medians) / csf_median if csf_median != 0 else np.inf
+    return vbq_score, vertebra_medians, csf_median
+
+# Function to display and save the annotated image
+def display_annotated_image(image_path, annotations, output_path, title="Annotated Image"):
+    # Load the image
+    im_rgb = Image.open(image_path)
+    im_np = np.array(im_rgb)
+
+    # Plot image
+    plt.imshow(im_np)
+    ax = plt.gca()
+
+    # Draw circles based on annotations
+    for annotation in annotations:
+        center_x = annotation["x"]
+        center_y = annotation["y"]
+        radius = annotation["radius"]
+        label = annotation["annotation"]
+
+        # Draw circle
+        circle = plt.Circle((center_x, center_y), radius, color='red', fill=False, linewidth=2)
+        ax.add_patch(circle)
+
+        # Add label
+        plt.text(center_x, center_y, label, color='yellow', fontsize=8, ha='center', va='center')
+
+    plt.title(title)
+    plt.axis('off')  # Hide axes
+
+    # Save the plot to a file
+    plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
+    plt.close()
 
 @app.route('/upload-file', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify(success=False, message="No file part")
+    if 'file' not in request.files or 'modality' not in request.form:
+        return jsonify(success=False, message="Missing file or modality")
+    
     files = request.files.getlist('file')
+    modality = request.form['modality']  # 'XR' for X-ray, 'MR' for MRI, 'CT' for CT
+    
     if not files:
         return jsonify(success=False, message="No selected file")
-    
+
     output_uuid = str(uuid.uuid4())
     available_verts = []
 
     for file in files:
+        # Handling NIfTI (CT) files
         if file and "nii" in file.filename:
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -93,21 +238,48 @@ def upload_file():
             for val in np.unique(output_nib.get_fdata()):
                 if val in vertebrae_dict:
                     available_verts.append(vertebrae_dict[val].split("_")[1])
-            print (output_uuid)
-            print (available_verts)
+            print(output_uuid)
+            print(available_verts)
+
+        # Handling JPEG/PNG files (X-ray images)
         elif file and (".jpg" in file.filename.lower() or ".jpeg" in file.filename.lower() or ".png" in file.filename.lower()):
-            # Handle JPEG/PNG files (X-ray images)
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{output_uuid}_{filename}")
             file.save(filepath)
-            modality = 'XR'
-            # For X-ray, available vertebrae are L1-L5
-            available_verts = ['L1', 'L2', 'L3', 'L4', 'L5']
+            print (modality)
+            if modality == 'XR':  # X-ray modality
+                # YOLO model can be used for vertebrae detection (L1-L5 assumed for X-ray)
+                available_verts = ['L1', 'L2', 'L3', 'L4', 'L5']
+                # Add any X-ray specific processing here (e.g., keypoints detection, etc.)
+            
+            elif modality == 'MRI':  # MRI modality (perform VBQ calculation)
+                print (filepath)
+                annotations = calculate_vbq_roi(filepath)
+                image = load_image(filepath)
+                median_intensities = calculate_median_intensity(image, annotations[os.path.basename(filepath)])
+                vbq_score, vertebra_medians, csf_median = calculate_vbq(median_intensities)
+                
+                # Save the annotated image
+                annotated_image_path = os.path.join(IMAGE_FOLDER, f"annotated_mr_{output_uuid}.png")
+                print (annotated_image_path)
+                display_annotated_image(filepath, annotations[os.path.basename(filepath)], annotated_image_path)
 
+                return jsonify(
+                    success=True,
+                    message="VBQ successfully calculated",
+                    uuid=output_uuid,
+                    modality=modality,
+                    vbq_score=vbq_score,
+                    vertebra_medians=vertebra_medians,
+                    csf_median=csf_median,
+                    image_url=annotated_image_path
+                )
+
+    # Return based on modality
     if modality == 'CT':
-        return jsonify(success=True, message="Files successfully uploaded", uuid=output_uuid, modality=modality, vertebrae=sorted(available_verts))
+        return jsonify(success=True, message="CT files successfully uploaded", uuid=output_uuid, modality=modality, vertebrae=sorted(available_verts))
     elif modality == 'XR':
-        return jsonify(success=True, message="Files successfully uploaded", uuid=output_uuid, modality=modality, vertebrae=available_verts)
+        return jsonify(success=True, message="X-ray files successfully uploaded", uuid=output_uuid, modality=modality, vertebrae=available_verts)
     else:
         return jsonify(success=False, message="Unsupported file type")
 
@@ -675,7 +847,7 @@ def output_ct():
 
 @app.route('/output_mri')
 def output_mri():
-    return render_template('output_mri.html')
+    return render_template('output_mr.html')
 @app.route('/output_insurance')
 def output_insurance():
     return render_template('output_insurance.html')

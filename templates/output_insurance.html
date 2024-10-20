@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Insurance Rejection Calculator</title>
+    <!-- Keep the CSS for the navbar only -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- New CSS for the rest of the page -->
+    <style>
+        /* Container for the main content */
+        .container {
+            max-width: 800px;
+            margin: 100px auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        /* Headings */
+        h1 {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        /* Paragraphs */
+        p {
+            line-height: 1.6;
+            margin-bottom: 1em;
+        }
+
+        /* Output box styling */
+        #output-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-top: 2em;
+            border-radius: 5px;
+        }
+
+        /* Highlighted words */
+        mark {
+            background-color: #ffff00;
+            font-weight: bold;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .container {
+                margin: 50px 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="index-content">
+        <header class="header">
+            <!-- ... existing header ... -->
+        </header>
+
+        <main class="container">
+            <h1>Insurance Rejection Prediction</h1>
+            <hr>
+
+            <h2>Your Submitted Radiology Report:</h2>
+            <p>{{ report_text }}</p>
+
+            <div id="output-box">
+                <h2>Model Predictions:</h2>
+                <p><strong>Probability of Denial:</strong> {{ result_data['Probability'] }}</p>
+                <p><strong>Words Associated With Higher Rejection Probability:</strong></p>
+                <p>{{ result_data['Key_words'] }}</p>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

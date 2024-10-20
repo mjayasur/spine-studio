@@ -1,4 +1,7 @@
 mask.nii.gz
+inputs.csv
+static/images/*
+uploads/*
 .DS_Store
 __pycache__/*
 old

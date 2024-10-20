@@ -29,6 +29,7 @@ function handleModelChange() {
         actionButton.textContent = 'Upload Files';
     }
 }
+
 // Handles the submission when the button is clicked, either upload files or calculate probability
 function handleUploadClick() {
     const imagingType = document.getElementById("type-of-imaging").value;
@@ -67,9 +68,8 @@ function handleUploadClick() {
                     console.error('There was a problem with the fetch operation:', error);
                 });
 
-            // If no file, use the radiology report text
         } else if (radiologyReport.trim()) {
-            // Encode the radiology report for use in the URL
+            // If no file, use the radiology report text
             const encodedReport = encodeURIComponent(radiologyReport);
 
             // Perform a GET request to the server-side endpoint
@@ -108,6 +108,7 @@ function handleUploadClick() {
         document.getElementById("index-content").hidden = true;
 
         var formData = new FormData(document.getElementById('uploadForm'));
+        formData.append('modality', imagingType);  // Include modality in form data
 
         fetch('/upload-file', {
             method: 'POST',
@@ -120,7 +121,9 @@ function handleUploadClick() {
                         console.log(data);
                         redirectUrl = `/output_ct?id=${data['uuid']}&modality=CT&availableLevels=${data['vertebrae']}`;
                     } else if (imagingType === "MRI") {
-                        redirectUrl = "/output_mri";
+                        console.log(data); // Log MRI data for debugging purposes
+                        // Ensure MRI redirects to a specific page with VBQ data
+                        redirectUrl = `/output_mri?id=${data['uuid']}&vbqScore=${data['vbq_score']}&vertebraMedians=${data['vertebra_medians']}&csfMedian=${data['csf_median']}&imageUrl=${data['image_url']}`;
                     } else if (imagingType === "XR") {
                         redirectUrl = `/output_xr?id=${data['uuid']}`;
                     }
@@ -153,5 +156,4 @@ window.onclick = function (event) {
 function calculateInsuranceProbability(radiologyReport) {
     console.log('Calculating insurance probability with radiology report:', radiologyReport);
     window.location.href = "/output_insurance?report=" + radiologyReport;
-
 }
