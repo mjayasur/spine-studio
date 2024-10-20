@@ -312,94 +312,80 @@ def classify_height_loss(left_height, right_height):
 @app.route('/calculate-compression-fracture', methods=['GET'])
 def calculate_compression_fracture():
     id = request.args.get('id')
-    vertebrae = request.args.get('vertebrae')
 
-    if not id or not vertebrae:
+    if not id:
         return jsonify(success=False, message="Missing parameters"), 400
 
-    # try:
-    # Map vertebrae to indices (assuming L1-L5)
-    vertebrae_map = {'L1': 0, 'L2': 1, 'L3': 2, 'L4': 3, 'L5': 4}
-    if vertebrae not in vertebrae_map:
-        return jsonify(success=False, message="Invalid vertebrae level"), 400
+    try:
+        # Map vertebrae to indices (L1-L5 correspond to index 0-4)
+        vertebrae_map = {'L1': 0, 'L2': 1, 'L3': 2, 'L4': 3, 'L5': 4}
 
-    vertebrae_index = vertebrae_map[vertebrae]
+        # Load the uploaded image
+        image_filenames = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(id)]
+        if not image_filenames:
+            return jsonify(success=False, message="Image not found"), 404
 
-    # Load the uploaded image
-    image_filenames = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(id)]
-    if not image_filenames:
-        return jsonify(success=False, message="Image not found"), 404
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filenames[0])
+        original_image = Image.open(image_path)
 
-    image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filenames[0])
-    original_image = Image.open(image_path)
+        # Perform inference to get the predicted keypoints
+        results = xr_model.predict(source=image_path, save=False)
 
-    # Perform inference to get the predicted keypoints
-    results = xr_model.predict(source=image_path, save=False)
+        # Check if any results were returned
+        if not results:
+            return jsonify(success=False, message="No keypoints detected"), 404
 
-    # Check if any results were returned
-    if not results:
-        return jsonify(success=False, message="No keypoints detected"), 404
+        # Extract the predictions (keypoints)
+        result = results[0]  # Assuming one image
+        keypoints = result.keypoints.xy[0].cpu().numpy()  # Extract keypoints for the detected object
 
-    # Extract the predictions (keypoints)
-    result = results[0]  # Assuming one image
-    keypoints = result.keypoints.xy[0].cpu().numpy()  # Extract keypoints for the detected object
-    print (keypoints)
-    # Process only the first 20 keypoints (L1-L5 vertebrae)
-    num_vertebrae = 5  # Since we're only processing L1-L5
+        # Prepare the figure for visualization
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.imshow(original_image)
+        ax.axis('off')
 
-    heights = []  # Store heights for each vertebra
-    classifications = []  # Store classification results for each vertebra
+        heights = []  # Store heights for each vertebra
+        classifications = []  # Store classification results for each vertebra
 
-    # Prepare the figure for visualization
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.imshow(original_image)
-    ax.axis('off')
+        num_vertebrae = 5  # We're processing L1-L5, so 5 vertebrae
+        for i in range(num_vertebrae):
+            # Get the 4 keypoints for the current vertebra (i-th vertebra)
+            k1 = keypoints[i * 4 + 0]  # Keypoint 1 (left-top)
+            k2 = keypoints[i * 4 + 1]  # Keypoint 2 (right-top)
+            k3 = keypoints[i * 4 + 2]  # Keypoint 3 (left-bottom)
+            k4 = keypoints[i * 4 + 3]  # Keypoint 4 (right-bottom)
 
-    i = vertebrae_index
-    print (i)
-    # Get the 4 keypoints for the current vertebra (i-th vertebra)
-    k1 = keypoints[i * 4 + 0]  # Keypoint 1
-    k2 = keypoints[i * 4 + 1]  # Keypoint 2
-    k3 = keypoints[i * 4 + 2]  # Keypoint 3
-    k4 = keypoints[i * 4 + 3]  # Keypoint 4
+            # Calculate the heights for each side of the vertebra
+            left_height = euclidean_distance(k1, k3)  # Distance between keypoint 1 and 3
+            right_height = euclidean_distance(k2, k4)  # Distance between keypoint 2 and 4
+            heights.append((left_height, right_height))
 
-    # Calculate the heights for each side of the vertebra
-    left_height = euclidean_distance(k1, k3)  # Distance between keypoint 1 and 3
-    right_height = euclidean_distance(k2, k4)  # Distance between keypoint 2 and 4
-    heights.append((left_height, right_height))
+            # Classify the height loss
+            classification, height_loss_percentage = classify_height_loss(left_height, right_height)
+            classifications.append((classification, height_loss_percentage))
 
-    # Classify the height loss
-    classification, height_loss_percentage = classify_height_loss(left_height, right_height)
-    classifications.append((classification, height_loss_percentage))
+            # Draw blue lines to represent the heights for each vertebra
+            ax.plot([k1[0], k3[0]], [k1[1], k3[1]], 'b-', lw=2)  # Line between keypoint 1 and 3 (left side)
+            ax.plot([k2[0], k4[0]], [k2[1], k4[1]], 'b-', lw=2)  # Line between keypoint 2 and 4 (right side)
 
-    # Draw blue lines to represent the heights
-    ax.plot([k1[0], k3[0]], [k1[1], k3[1]], 'b-', lw=2)  # Line between keypoint 1 and 3 (left side)
-    ax.plot([k2[0], k4[0]], [k2[1], k4[1]], 'b-', lw=2)  # Line between keypoint 2 and 4 (right side)
+            # Mark the keypoints for visualization (optional)
+            ax.scatter([k1[0], k2[0], k3[0], k4[0]], [k1[1], k2[1], k3[1], k4[1]], c='red', s=40)
 
-    # Mark the keypoints for visualization (optional)
-    ax.scatter([k1[0], k2[0], k3[0], k4[0]], [k1[1], k2[1], k3[1], k4[1]], c='red', s=40)
+        # Save the image with keypoints and lines
+        output_uuid = str(uuid.uuid4())
+        output_image_path = os.path.join(app.config['IMAGE_FOLDER'], f"{output_uuid}_keypoints.png")
+        plt.savefig(output_image_path, bbox_inches='tight', pad_inches=0)
+        plt.close()
 
-    # Save the image with keypoints and lines
-    output_uuid = str(uuid.uuid4())
-    output_image_path = os.path.join(app.config['IMAGE_FOLDER'], f"{output_uuid}_keypoints.png")
-    plt.savefig(output_image_path, bbox_inches='tight', pad_inches=0)
-    plt.close()
+        # Prepare the response (you can customize this part if you want to include more detailed results)
+        return jsonify(
+            success=True,
+            imageUrl=f"/static/images/{output_uuid}_keypoints.png"
+        )
 
-    # Get the classification and height loss for the selected vertebra
-    left_height, right_height = heights[0]
-    classification, height_loss_percentage = classifications[0]
-
-    # Prepare the response
-    return jsonify(
-        success=True,
-        imageUrl=f"/static/images/{output_uuid}_keypoints.png",
-        heightLoss=f"{height_loss_percentage:.2f}%",
-        genantClassification=classification
-    )
-
-    # except Exception as e:
-    #     print (str(e))
-    #     return jsonify(success=False, message=str(e)), 500
+    except Exception as e:
+        print(str(e))
+        return jsonify(success=False, message=str(e)), 500
 
 def load_nii(filepath):
     return nib.load(filepath).get_fdata()

@@ -36,28 +36,6 @@
             margin-bottom: 20px;
         }
 
-        .dropdown {
-            margin-bottom: 20px;
-        }
-
-        .dropdown label {
-            font-family: 'DM Sans', sans-serif;
-            font-size: 14px;
-            color: #757575;
-            display: block;
-        }
-
-        .dropdown select {
-            margin-top: 10px;
-            padding: 10px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 16px;
-            color: #757575;
-            border: 1px solid #000000;
-            border-radius: 5px;
-            width: 100%;
-        }
-
         .calculate-button {
             margin-top: 20px;
             padding: 10px 20px;
@@ -124,23 +102,11 @@
             <!-- Compression Fracture Detection Section -->
             <div class="section">
                 <div class="section-title">Compression Fracture Detection</div>
-                <div class="dropdown">
-                    <label for="vertebrae-compression">Select Vertebra (L1-L5)</label>
-                    <select id="vertebrae-compression">
-                        <option value="L1">L1</option>
-                        <option value="L2">L2</option>
-                        <option value="L3">L3</option>
-                        <option value="L4">L4</option>
-                        <option value="L5">L5</option>
-                    </select>
-                </div>
-                <button class="calculate-button" onclick="calculateCompressionFracture()">Calculate</button>
+                <button class="calculate-button" onclick="calculateCompressionFracture()">Calculate Compression
+                    Fractures</button>
                 <div id="compression-result" class="result-box" style="display: none;">
-                    <h2>Compression Fracture Results</h2>
+                    <h2>Compression Fracture Results for All Vertebrae</h2>
                     <img src="" id="compression-image" alt="Compression Fracture Image">
-                    <p>Height Loss: <span class="highlight" id="height-loss">0%</span></p>
-                    <p>Genant Classification: <span class="highlight" id="genant-classification">No compression
-                            fracture</span></p>
                 </div>
             </div>
 
@@ -166,17 +132,13 @@
         }
 
         function calculateCompressionFracture() {
-            const vertebrae = document.getElementById('vertebrae-compression').value;
             const { id } = getUrlParams();
 
-            fetch(`/calculate-compression-fracture?id=${id}&vertebrae=${vertebrae}`)
+            fetch(`/calculate-compression-fracture?id=${id}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         document.getElementById('compression-image').src = data.imageUrl;
-                        document.getElementById('height-loss').textContent = data.heightLoss;
-                        document.getElementById('genant-classification').textContent = data.genantClassification;
-
                         document.getElementById('compression-result').style.display = 'block';
                     } else {
                         alert(data.message || 'An error occurred while processing your request.');
