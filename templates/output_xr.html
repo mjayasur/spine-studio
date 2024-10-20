@@ -107,6 +107,8 @@
                 <div id="compression-result" class="result-box" style="display: none;">
                     <h2>Compression Fracture Results for All Vertebrae</h2>
                     <img src="" id="compression-image" alt="Compression Fracture Image">
+                    <p>Total Compression Fractures: <span class="highlight" id="num-fractures">0</span></p>
+                    <p>Fractured Vertebrae: <span class="highlight" id="fractured-vertebrae">None</span></p>
                 </div>
             </div>
 
@@ -139,6 +141,8 @@
                 .then(data => {
                     if (data.success) {
                         document.getElementById('compression-image').src = data.imageUrl;
+                        document.getElementById('num-fractures').textContent = data.numFractures;
+                        document.getElementById('fractured-vertebrae').textContent = data.fracturedVertebrae.join(', ');
                         document.getElementById('compression-result').style.display = 'block';
                     } else {
                         alert(data.message || 'An error occurred while processing your request.');

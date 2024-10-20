@@ -318,7 +318,7 @@ def calculate_compression_fracture():
 
     try:
         # Map vertebrae to indices (L1-L5 correspond to index 0-4)
-        vertebrae_map = {'L1': 0, 'L2': 1, 'L3': 2, 'L4': 3, 'L5': 4}
+        vertebrae_map = ['L1', 'L2', 'L3', 'L4', 'L5']
 
         # Load the uploaded image
         image_filenames = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.startswith(id)]
@@ -346,6 +346,8 @@ def calculate_compression_fracture():
 
         heights = []  # Store heights for each vertebra
         classifications = []  # Store classification results for each vertebra
+        fractured_vertebrae = []  # List to store fractured vertebrae names
+        num_fractures = 0  # Count the number of compression fractures
 
         num_vertebrae = 5  # We're processing L1-L5, so 5 vertebrae
         for i in range(num_vertebrae):
@@ -360,9 +362,14 @@ def calculate_compression_fracture():
             right_height = euclidean_distance(k2, k4)  # Distance between keypoint 2 and 4
             heights.append((left_height, right_height))
 
-            # Classify the height loss
+            # Classify the height loss and check for compression fracture
             classification, height_loss_percentage = classify_height_loss(left_height, right_height)
             classifications.append((classification, height_loss_percentage))
+
+            # Increment the fracture count if a fracture is detected and add vertebra name
+            if classification != "No compression fracture":
+                num_fractures += 1
+                fractured_vertebrae.append(vertebrae_map[i])
 
             # Draw blue lines to represent the heights for each vertebra
             ax.plot([k1[0], k3[0]], [k1[1], k3[1]], 'b-', lw=2)  # Line between keypoint 1 and 3 (left side)
@@ -377,10 +384,12 @@ def calculate_compression_fracture():
         plt.savefig(output_image_path, bbox_inches='tight', pad_inches=0)
         plt.close()
 
-        # Prepare the response (you can customize this part if you want to include more detailed results)
+        # Prepare the response with the number of fractures and list of fractured vertebrae
         return jsonify(
             success=True,
-            imageUrl=f"/static/images/{output_uuid}_keypoints.png"
+            imageUrl=f"/static/images/{output_uuid}_keypoints.png",
+            numFractures=num_fractures,  # Number of detected compression fractures
+            fracturedVertebrae=fractured_vertebrae  # List of fractured vertebrae
         )
 
     except Exception as e:
@@ -493,8 +502,8 @@ def calculate_hounsfield():
         mask_sagittal_slice = (mask_data[:,  :, midsagittal_index] == vertebrae_id).astype(np.uint8)
 
         # Rotate the midsagittal slice by 90 degrees
-        midsagittal_slice_rotated = np.rot90(midsagittal_slice)
-        mask_sagittal_slice_rotated = np.rot90(mask_sagittal_slice)
+        midsagittal_slice_rotated = midsagittal_slice
+        mask_sagittal_slice_rotated = mask_sagittal_slice
 
         # Create unique filenames for the resulting images
         output_uuid = str(uuid.uuid4())
