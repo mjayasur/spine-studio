@@ -16,7 +16,8 @@ matplotlib.use('Agg')
 from ultralytics import YOLO
 # Load the YOLO model for X-ray images
 # Replace the path with the actual path to your trained YOLO model weights
-model = YOLO("best.pt")  # Path to your last saved weights
+xr_model = YOLO("last.pt")  # Path to your last saved weights
+mr_model = YOLO("best.pt")  # Path to your last saved weights
 
 import matplotlib.pyplot as plt
 from scipy.ndimage import label
@@ -76,7 +77,7 @@ def _is_close(point1, point2, threshold=5):
     return abs(point1[0] - point2[0]) <= threshold and abs(point1[1] - point2[1]) <= threshold
 
 def calculate_vbq_roi(image_path):
-    results = model(image_path)
+    results = mr_model(image_path)
     all_annotations = {}
 
     for i, result in enumerate(results):
@@ -333,7 +334,7 @@ def calculate_compression_fracture():
     original_image = Image.open(image_path)
 
     # Perform inference to get the predicted keypoints
-    results = model.predict(source=image_path, save=False)
+    results = xr_model.predict(source=image_path, save=False)
 
     # Check if any results were returned
     if not results:
@@ -635,7 +636,7 @@ def calculate_spondylolisthesis():
     original_image = Image.open(image_path)
 
     # Perform inference to get the predicted keypoints
-    results = model.predict(source=image_path, save=False)
+    results = xr_model.predict(source=image_path, save=False)
 
     # Check if any results were returned
     if not results:
